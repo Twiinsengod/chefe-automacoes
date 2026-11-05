@@ -23,6 +23,24 @@ def test_normalize_uses_expanded_url_and_flags_missing_pin():
     assert s["url"] == "https://x.com/u/status/9" and s["pinned_missing"] and s["followers_count"] == 5
 
 
+def test_pinned_note_tweet_resolved_from_includes():
+    import json
+    raw = json.loads((pathlib.Path(__file__).resolve().parents[1] / "fixtures" / "fcruz_profile.json").read_text(encoding="utf-8"))
+    short = "texto truncado da API"
+    note = raw["includes"]["tweets"][0]["note_tweet"]["text"]
+    raw["includes"]["tweets"][0]["text"] = short
+    raw["errors"] = [{"detail": "Could not find post with pinned_tweet_id: [2117934197864075507].",
+                      "parameter": "pinned_tweet_id", "resource_id": "2117934197864075507"}]
+    s = pc.normalize(raw)
+    assert s["pinned_missing"] is False
+    assert s["pinned_tweet_id"] == "2117934197864075507"
+    assert s["pinned_created_at"] == "2026-11-04T10:57:16.000Z"
+    assert s["pinned_text"] == note
+    assert s["pinned_text"].startswith("Olá  👋")
+    assert "Me segue que eu te mostro como tô aprendendo." in s["pinned_text"]
+    assert len(s["pinned_text"]) > len(short)
+
+
 def test_snapshot_cycle(tmp_path, capsys):
     import json
     f = tmp_path / "p.json"
